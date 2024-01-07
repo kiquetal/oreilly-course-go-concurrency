@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 )
 
 func main() {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 350*time.Millisecond)
+	defer cancel()
 	var wg sync.WaitGroup
 	n := 100
 	//limit to 10 concurrent calls
@@ -15,23 +19,40 @@ func main() {
 
 	for i := 0; i < 10; i++ {
 		go func(workerId int) {
-			for msgID := range ch {
-				DoRPC(workerId, msgID) //blocking call
+			defer wg.Done()
+
+			for {
+				select {
+				case msgID, ok := <-ch:
+					if !ok {
+						fmt.Printf("worker %d shutting down via channel\n", workerId)
+						return
+					}
+					DoRPC(ctx, workerId, msgID)
+				case <-ctx.Done():
+					fmt.Printf("worker %d done via timeout\n", workerId)
+					return // return to the block of select or for loop
+				}
 			}
-			wg.Done()
+
 		}(i)
 	}
-
+loop:
 	for i := 0; i < n; i++ {
-		ch <- i // sending blocks until one of the workers is ready to receive
+		select {
+		case ch <- i:
+		case <-ctx.Done():
+			break loop
+		}
 	}
 	close(ch)
 	wg.Wait()
-
+	fmt.Println("main done")
 }
 
-func DoRPC(workerId int, msgID int) {
+func DoRPC(ctx context.Context, workerId int, msgID int) {
 	time.Sleep(150 * time.Millisecond)
+
 	fmt.Printf("worker %d sending message %d\n", workerId, msgID)
 
 }
