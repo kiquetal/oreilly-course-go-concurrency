@@ -47,12 +47,18 @@ loop:
 	}
 	close(ch)
 	wg.Wait()
-	fmt.Println("main done")
+	fmt.Println("main routine")
 }
 
 func DoRPC(ctx context.Context, workerId int, msgID int) {
 	time.Sleep(150 * time.Millisecond)
-
-	fmt.Printf("worker %d sending message %d\n", workerId, msgID)
+	// check if context is done
+	select {
+	case <-ctx.Done():
+		fmt.Printf("OnDRPC worker %d done via timeout\n ", workerId)
+		return
+	default:
+		fmt.Printf("worker %d done msgID %d\n", workerId, msgID)
+	}
 
 }
