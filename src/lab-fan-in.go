@@ -36,7 +36,7 @@ func main() {
 		}
 		fmt.Printf("consumer finished - end of all\n")
 	}()
-	producerWg.Wait()
+	//	producerWg.Wait()
 	consumerWg.Wait()
 
 }
