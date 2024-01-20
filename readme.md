@@ -1,3 +1,6 @@
 ### Go Concurrency interactivity
 
-    GoRoutines: 
+   
+### Map-Reduce
+
+- 
